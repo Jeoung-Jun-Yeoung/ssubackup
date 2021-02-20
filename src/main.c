@@ -7,12 +7,12 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
-typedef struct backup_list {
+typedef struct backuplist {
 	char order[10];
 	char filename[255];
 	char period[3];
 	char option;
-	struct backup_list* next;
+	struct backuplist* next;
 } list;
 
 bool is_vaild_path (char path[]) { // 경로를 검사하는 함수.
@@ -27,7 +27,7 @@ bool is_vaild_path (char path[]) { // 경로를 검사하는 함수.
 			return false;
 		}
 		i++;
-		}
+	}
 
 	dp = opendir(path);
 
@@ -42,41 +42,90 @@ bool is_vaild_path (char path[]) { // 경로를 검사하는 함수.
 	}
 }
 
+bool is_vaild_order (char order[]) {
+
+	char useorder[8][15] = {"add", "remove","compare","recover","list","ls","vi(m)","exist"};
+	int checkorder = 3;
+
+	if(order[0] == '\n'){
+		printf("ERROR");
+		return false; // 입력이 없으면  에러처리후 프롬포트로.
+	}
+
+	char* token = strtok(order," ");
+
+	while (token != NULL) { 
+		if (i == 0) {
+
+			for(int i = 0; i < 8; i++ ){
+
+				checkorder = strcmp(token,useorder[i]);// 명령어가 담긴 토큰과 비교결과를 담아서 아래조건으로 확인.
+
+				if (checkor == 0){ // 명령어가 존재하면 반복문을 빠져나와 다음조건 확인.
+					break;
+				}
+				else if (i == 7) {
+					return false; //다 확인했는데, 명령어가 없으면 f리턴
+				}
+			}
+
+			else if (i == 1){
+				int flieexist = access(token,F_OK);
+				
+				if (flieexist =  -1) {
+					return false; // 파일이 존재하지 않다면 false
+				}
+			
+			}
+
+			else if (i == 2) {
+
+				strcpy(bcklist->period,token);
+			}
+			i++;
+			token = strtok(NULL," ");
+		}
+	}
+}
 void prompt() {
-	char order[300] = {0,};
-	int flag = 0;
-	
+	char order[500];
+	int  i = 0;
+
+	system("clear");
+
 	printf("20170819>");
 
-	fgets(order,300,stdin);
+	fgets(order,sizeof(order),stdin);
 	order[strlen(order)-1] = '\0';
-	
+
+	is_vaild_order(order);
+
 	char* token = strtok(order," ");
-	
+
 	list* head = (list*)malloc(sizeof(list));
 	head->next = NULL;
 
+	list* bcklist = (list*)malloc(sizeof(list));
+
 	while (token != NULL) { 
-		list* bcklist = (list*)malloc(sizeof(list));
-		
-		if (flag = 0) {
+		if (i == 0) {
 			strcpy(bcklist->order,token);
-			printf("%s %d order\n",token,flag);
+
 		}
-		else if (flag = 1) {
+		else if (i == 1){
 			strcpy(bcklist->filename,token);
-			printf("%s %d filename\n", token,flag);
 		}
-		else if (flag = 2) {
+		else if (i == 2) {
+
 			strcpy(bcklist->period,token);
-			printf("%s per\n",token);
 		}
+		i++;
 		token = strtok(NULL," ");
-		flag++;
-		bcklist->next = head->next;
-		head->next = bcklist;
 	}
+	bcklist->next = head->next;
+	head->next = bcklist;
 }
+
 int main() {
 
 	char path [300] = {0,}; // 경로를 입력받는 변수.
@@ -108,7 +157,7 @@ int main() {
 			strcat(path,foldername);
 
 			int dir_result = mkdir(path,0755);
-//여기 아래는 없어도 됨. 폴더생성여부확인차 넣은 코드.
+			//여기 아래는 없어도 됨. 폴더생성여부확인차 넣은 코드.
 			if(dir_result == 0) {
 				printf("폴더 생성 성공");
 			}
@@ -118,7 +167,6 @@ int main() {
 		}
 	}
 
-system("clear");
-prompt();
+	prompt();
 }
 
