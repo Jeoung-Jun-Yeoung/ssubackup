@@ -211,4 +211,3 @@ int main() {
 	head->next = NULL;
 	prompt();
 }
-
