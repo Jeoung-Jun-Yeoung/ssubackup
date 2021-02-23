@@ -15,29 +15,29 @@ typedef struct backuplist {
 } list;
 
 
-bool is_vaild_path (char* path[]) { // 경로를 검사하는 함수.
-	DIR* dp = NULL;
+bool is_valid_path (char* path) { // 경로를 검사하는 함수.
+	struct stat buf;
+	
+	stat(path,&buf);
 
-	dp = opendir(path[1]);
-
-	printf("%s \n", path[1]);
-	if (dp == NULL) { // 경로가 유효하지 않으면 NULL이 반환됨.
-		return false;
-	}
-	else {
-		printf("정상적인 경로입니다.\n");
-		closedir(dp);
+	if (S_ISDIR(buf.st_mode)){
 		return true;
 	}
+	else{
+		return false;
+	}
 }
-/*
-bool is_basic_file () {
-	struct stat * buf;
 
-	stat(,buf);
-	if(S_ISREG(buf->st_mode)
+bool is_basic_file (char* filename) {
+   struct stat buf;
 
-
+   stat(filename,&buf);
+   if(S_ISREG(buf.st_mode)){
+	   return true;
+   }
+   else {
+	   return false;
+   }			   
 }
 
 void change_repath2abpath() {
@@ -47,8 +47,8 @@ void change_repath2abpath() {
 // cd <path>; pwd
 
 }
-*/
-int is_vaild_order (char order[]) {
+
+int is_valid_order (char order[]) {
 
 	char useorder[8][15] = {"add", "remove","compare","recover","list","ls","vi(m)","exist"};
 
@@ -72,15 +72,13 @@ int is_vaild_order (char order[]) {
 }
 
 void prompt(list* head) {
-	char order[500];
-	char tokenlist[6][300];
-	int i = 0;
-	int a = 0;
-	int flag = 0;
-	// while exist 입력시 종료.
-	while (flag != 1) {
+	while (1) {
+		char order[500];
+		char tokenlist[6][300];
+		int i = 0;
+		int a = 0;
+		
 		system("clear");
-
 		printf("20170819>");
 
 		fgets(order,sizeof(order),stdin);
@@ -94,39 +92,40 @@ void prompt(list* head) {
 			i++;
 		}
 
-		a = is_vaild_order(tokenlist[0]);
-
+		a = is_valid_order(tokenlist[0]);
+		
 		switch (a) 
 		{
 			case 0:
 				if (tokenlist[1] == " ") {
-					printf("ERROR");
+					printf("ERROR\n");
 					break;
 				}
 
-				FILE* fp = fopen(tokenlist[1],"r"); // file이 존재하지 않음,fopen에서는  특수파일이 열리지않음.
-				if (fp == NULL) {
-					printf("ERROR");
+				if (!is_basic_file(tokenlist[1])) { // file에 대한 유효성 검사.
+					printf("ERROR\n");
 					break;
 				}
-				/*
+				
 				   list* cur = (list*)malloc(sizeof(list));
 				   cur = head;
 
 				   while (cur->next != NULL) {
 				   if (!strcmp(cur->filename,tokenlist[1])){
-				   printf("ERROR");
-				//go prompt
+				   printf("ERROR\n");
+				   break;
 				}
 				cur->next = cur;
-				}*/
+				} // 이미 기존 리스트에 존재하는지 검사.
 				// filename에 대한 유효성검사 끝.
+				if (tokenlist[2] == " "){
+					printf("ERROR\n");
+				}
 				double period = atof(tokenlist[2]);
 				int turncated = (int)period;
-				if (period != turncated) {
-					printf("ERROR");
+				if (period != turncated || turncated == 0) {
+					printf("ERROR\n");
 					break;
-					//go prompt
 				}
 				//period 유효성 검사 끝.
 
@@ -137,6 +136,9 @@ void prompt(list* head) {
 				bcklist->period = turncated;
 				bcklist->next = head->next;
 				head->next = bcklist;
+				// 아래도 리스트 확인차 만든 코드
+				printf("%s\n",bcklist->filename);
+				printf("%d\n",bcklist->period);
 
 				break;
 			case 1:
@@ -152,7 +154,7 @@ void prompt(list* head) {
 			case 6:
 
 			case 7:
-				flag = 1;
+				break;
 
 			case 8:
 
@@ -161,46 +163,51 @@ void prompt(list* head) {
 				break;
 
 		}
+		if (a == 7) {
+			break;
+		}
 	}
 }
-	int main(int argc,char* argv[]) {
+int main(int argc,char* argv[]) {
 
-		char foldername [8] = "/backup";
-		char strbuffer [300] = {0,};
-		char* pstrbuffer = NULL;
+	char foldername [8] = "/backup";
+	char strbuffer [300] = {0,};
+	char* pstrbuffer = NULL;
+	if (argc == 1) { // 입력이 안되면,
 
-		if (argc == 1) { // 입력이 안되면,
+		pstrbuffer = getcwd(strbuffer,300); // 현재 디렉토리 경로얻기.
+		strcat(strbuffer,foldername); // 현재 디렉토리경로 + 디렉토리이름
 
-			pstrbuffer = getcwd(strbuffer,300); // 현재 디렉토리 경로얻기.
-			strcat(strbuffer,foldername); // 현재 디렉토리경로 + 디렉토리이름
+		int dir_result = mkdir(strbuffer,0755);
 
-			int dir_result = mkdir(strbuffer,0755);
+	}
+	else { // 경로입력이 되었다면,
+		//   경로를 유효성검사함수로 보낸다. 이후 결과에 따라 백업폴더 생성.
 
+		is_valid_path(argv[1]);
+		argv[strlen(argv[1])-1] = '\0'; // 개행제거
+		
+		if (!is_valid_path(argv[1])) {
+			printf("uasge");
+			return 0;
 		}
-		else { // 경로입력이 되었다면,
-			
-			//   경로를 유효성검사함수로 보낸다. 이후 결과에 따라 백업폴더 생성.
-			 
-			argv[strlen(argv[1])-1] = '\0'; // 개행제거
-
-			if (is_vaild_path(argv) == 0) {
-				printf("uasge");
-				return 0;
+		else {
+			strcat(argv[1],foldername);
+			int dir_result = mkdir(argv[1], 0755);
+			//여기 아래는 없어도 됨. 폴더생성여부확인차 넣은 코드.
+			if(dir_result == 0) {
+				printf("폴더 생성 성공");
 			}
 			else {
-				strcat(argv[1],foldername);
-				int dir_result = mkdir(argv[1], 0755);
-				//여기 아래는 없어도 됨. 폴더생성여부확인차 넣은 코드.
-				if(dir_result == 0) {
-					printf("폴더 생성 성공");
-				}
-				else {
-					printf("실패");
-				}
+				printf("실패");
 			}
 		}
-		list* head = (list*)malloc(sizeof(list));
-		head->next = NULL;
-		
-		prompt(head);
 	}
+	list* head = (list*)malloc(sizeof(list));
+	head->next = NULL;
+
+
+	prompt(head);
+
+
+}
