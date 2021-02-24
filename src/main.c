@@ -6,6 +6,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <pwd.h>
+#include <grp.h>
 
 typedef struct backuplist {
 	char filename[255];
@@ -14,10 +16,9 @@ typedef struct backuplist {
 	struct backuplist* next;
 } list;
 
-
 bool is_valid_path (char* path) { // 경로를 검사하는 함수.
 	struct stat buf;
-	
+
 	stat(path,&buf);
 
 	if (S_ISDIR(buf.st_mode)){
@@ -29,29 +30,25 @@ bool is_valid_path (char* path) { // 경로를 검사하는 함수.
 }
 
 bool is_basic_file (char* filename) {
-   struct stat buf;
+	struct stat buf;
 
-   stat(filename,&buf);
-   if(S_ISREG(buf.st_mode)){
-	   return true;
-   }
-   else {
-	   return false;
-   }			   
+	stat(filename,&buf);
+	if(S_ISREG(buf.st_mode)){
+		return true;
+	}
+	else {
+		return false;
+	}			   
 }
 
-void change_repath2abpath() {
-
-
-// fullpath
-// cd <path>; pwd
-
+char* change_repath2abpath (char* path) {
+	char static changepath[300] = {0,};
+	realpath(path,changepath);
+	return changepath;
 }
 
 int is_valid_order (char order[]) {
-
 	char useorder[8][15] = {"add", "remove","compare","recover","list","ls","vi(m)","exist"};
-
 	for(int i = 0; i < 8; i++ ){
 		if (!strcmp(order,useorder[i])) { // 명령어가 존재하면 반복문을 빠져나와 다음조건 확인.
 			return i;
@@ -60,25 +57,19 @@ int is_valid_order (char order[]) {
 			return i + 1; //다 확인했는데, 명령어가 없으면 f리턴
 		}
 	}		
-	/*
-	   else if (i == 1){
-	   int flieexist = access(token,F_OK);
-
-	   if (flieexist =  -1) {
-	   return false; // 파일이 존재하지 않다면 false
-	   }
-	   }
-	 */
 }
 
-void prompt(list* head) {
+void prompt (char* argv) {
+	list* head = (list*)malloc(sizeof(list));
+	head->next = NULL;
+	chdir(argv);
 	while (1) {
 		char order[500];
 		char tokenlist[6][300];
 		int i = 0;
 		int a = 0;
-		
-		system("clear");
+
+		//system("clear");
 		printf("20170819>");
 
 		fgets(order,sizeof(order),stdin);
@@ -93,74 +84,82 @@ void prompt(list* head) {
 		}
 
 		a = is_valid_order(tokenlist[0]);
-		
+
 		switch (a) 
 		{
-			case 0:
-				if (tokenlist[1] == " ") {
-					printf("ERROR\n");
-					break;
-				}
+			case 0: {
+						if (tokenlist[1] == " ") {
+							printf("ERROR\n");
+							break;
+						}
 
-				if (!is_basic_file(tokenlist[1])) { // file에 대한 유효성 검사.
-					printf("ERROR\n");
-					break;
-				}
-				
-				   list* cur = (list*)malloc(sizeof(list));
-				   cur = head;
+						if (!is_basic_file(tokenlist[1])) { // file에 대한 유효성 검사.
+							printf("ERROR\n");
+							break;
+						}
 
-				   while (cur->next != NULL) {
-				   if (!strcmp(cur->filename,tokenlist[1])){
-				   printf("ERROR\n");
-				   break;
-				}
-				cur->next = cur;
-				} // 이미 기존 리스트에 존재하는지 검사.
-				// filename에 대한 유효성검사 끝.
-				if (tokenlist[2] == " "){
-					printf("ERROR\n");
-				}
-				double period = atof(tokenlist[2]);
-				int turncated = (int)period;
-				if (period != turncated || turncated == 0) {
-					printf("ERROR\n");
-					break;
-				}
-				//period 유효성 검사 끝.
+						list* cur = (list*)malloc(sizeof(list));
+						cur = head;
 
-				list* bcklist = (list*)malloc(sizeof(list));
+						while (cur->next != NULL) {
+							if (strcmp(cur->filename,tokenlist[1]) != 0){
+								printf("ERROR\n");
+								break;
+							}
+							cur->next = cur;
+						} 
+						// 이미 기존 리스트에 존재하는지 검사.
+						// filename에 대한 유효성검사 끝.
+						if (tokenlist[2] == " "){
+							printf("ERROR\n");
+						}
+						double period = atof(tokenlist[2]);
+						int turncated = (int)period;
+						if (period != turncated || turncated == 0) {
+							printf("ERROR\n");
+							break;
+						}
+						//period 유효성 검사 끝.
 
-				strcpy(bcklist->filename,tokenlist[1]);
+						list* bcklist = (list*)malloc(sizeof(list));
 
-				bcklist->period = turncated;
-				bcklist->next = head->next;
-				head->next = bcklist;
-				// 아래도 리스트 확인차 만든 코드
-				printf("%s\n",bcklist->filename);
-				printf("%d\n",bcklist->period);
+						strcpy(bcklist->filename,tokenlist[1]);
 
-				break;
+						bcklist->period = turncated;
+						bcklist->next = head->next;
+						head->next = bcklist;
+						// 아래도 리스트 확인차 만든 코드
+
+						break;}
 			case 1:
 
 			case 2:
 
 			case 3:
 
-			case 4:
+			case 4:{
+					   list* temp = (list*)malloc(sizeof(list));
+					   temp = head;
 
+					   while (temp->next != NULL) {
+						   printf("%s asdasd  %d",temp->filename,temp->period);
+					   }
+					   temp->next = temp;
+
+
+					   break; }
 			case 5:
 
 			case 6:
 
 			case 7:
-				break;
+				   break;
 
 			case 8:
 
 			default:
 
-				break;
+				   break;
 
 		}
 		if (a == 7) {
@@ -183,31 +182,25 @@ int main(int argc,char* argv[]) {
 	}
 	else { // 경로입력이 되었다면,
 		//   경로를 유효성검사함수로 보낸다. 이후 결과에 따라 백업폴더 생성.
-
-		is_valid_path(argv[1]);
 		argv[strlen(argv[1])-1] = '\0'; // 개행제거
-		
+
+		if (argv[1][0] != '/') { // 상대경로라면 절대경로 변환.
+			argv[1] = change_repath2abpath(argv[1]); 
+		}
+
 		if (!is_valid_path(argv[1])) {
-			printf("uasge");
+			printf("uasge"); // 이후 경로가 디렉토리 파일이 맞는지 점검. 
 			return 0;
 		}
-		else {
+		else { // 다 통과하면 경로에 백업폴더 생성.
 			strcat(argv[1],foldername);
 			int dir_result = mkdir(argv[1], 0755);
 			//여기 아래는 없어도 됨. 폴더생성여부확인차 넣은 코드.
-			if(dir_result == 0) {
-				printf("폴더 생성 성공");
-			}
-			else {
+			if(dir_result != 0) {
 				printf("실패");
+				return 0;
 			}
 		}
 	}
-	list* head = (list*)malloc(sizeof(list));
-	head->next = NULL;
-
-
-	prompt(head);
-
-
+	prompt(argv[1]);
 }
