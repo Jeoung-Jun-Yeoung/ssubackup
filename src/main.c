@@ -59,6 +59,16 @@ int is_valid_order (char order[]) {
 		}
 	}		
 }
+void make_node(list* head, char* filename, int turncated){
+	list* bcklist = (list*)malloc(sizeof(list));
+
+	strcpy(bcklist->filename,filename); //file이름 넣어주기.
+	bcklist->period = turncated; // 주기 넣어주기
+
+	bcklist->next = head->next; // 리스트간 연결.
+	head->next = bcklist;
+
+}
 
 void prompt (list* head,char* argv) {
 	//	chdir(argv); // 작업을 현재 디렉토리폴더로 이동.
@@ -68,14 +78,12 @@ void prompt (list* head,char* argv) {
 		char tokenlist[6][300] = {0,};
 		int i = 0;
 		int a = 0;
-
 		//system("clear");
 		printf("20170819>");
 
 		fgets(order,sizeof(order),stdin);
 		order[strlen(order)-1] = '\0';
-
-		//		while(getchar() != '\n');
+		
 		char* token = strtok(order," ");
 
 		while(token != NULL){
@@ -88,20 +96,19 @@ void prompt (list* head,char* argv) {
 
 		switch (a) 
 		{
-			case 0: {
+			case 0: {	
 						if (tokenlist[1] == " ") {
+							printf("ERROR if  디버깅\n");
 							printf("ERROR 공백 \n");
 							break;
 						}
-
 						if (!is_basic_file(tokenlist[1])) { // file에 대한 유효성 검사.
 							printf("ERROR 파일 유효성\n");
 							break;
 						}
-
-						list* cur = (list*)malloc(sizeof(list));
+						
+						list* cur;
 						cur = head;
-
 						while (cur->next != NULL) {
 							if (strcmp(cur->filename,tokenlist[1]) == 0){
 								printf("ERROR 이미 존재\n");
@@ -109,7 +116,6 @@ void prompt (list* head,char* argv) {
 							}
 							cur->next = cur;
 						}
-						free(cur);
 						// 이미 기존 리스트에 존재하는지 검사.
 						// filename에 대한 유효성검사 끝.
 						if (tokenlist[2] == " "){
@@ -122,15 +128,17 @@ void prompt (list* head,char* argv) {
 							break;
 						}
 						//period 유효성 검사 끝.
+						make_node(head,tokenlist[1],turncated);
+						printf("%s %d",head->next->filename, head->next->period);
+					/*	list* bcklist = (list*)malloc(sizeof(list));
 
-						list* bcklist = (list*)malloc(sizeof(list));
+						strcpy(bcklist->filename,tokenlist[1]); //file이름 넣어주기.
+						bcklist->period = turncated; // 주기 넣어주기
 
-						strcpy(bcklist->filename,tokenlist[1]);
-						bcklist->period = turncated;
-
-						bcklist->next = head->next;
+						bcklist->next = head->next; // 리스트간 연결.
 						head->next = bcklist;
-						break;}
+					   	*/
+					  break;}
 			case 1:
 
 			case 2:
@@ -138,15 +146,12 @@ void prompt (list* head,char* argv) {
 			case 3:
 
 			case 4:{
-					   list* temp = (list*)malloc(sizeof(list));
+					   list* temp;
 					   temp = head;
-
 					   while (temp->next != NULL) {
+						   temp = temp->next;
 						   printf("%s %d\n",temp->filename,temp->period);
-						   temp->next = temp;
 					   }
-
-
 					   break; }
 			case 5:
 
