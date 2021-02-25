@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <pwd.h>
 #include <grp.h>
+#include <pthread.h>
 
 typedef struct backuplist {
 	char filename[255];
@@ -59,13 +60,12 @@ int is_valid_order (char order[]) {
 	}		
 }
 
-void prompt (char* argv) {
-	list* head = (list*)malloc(sizeof(list));
-	head->next = NULL;
-	chdir(argv);
+void prompt (list* head,char* argv) {
+	//	chdir(argv); // 작업을 현재 디렉토리폴더로 이동.
+
 	while (1) {
-		char order[500];
-		char tokenlist[6][300];
+		char order[500] = {0,};
+		char tokenlist[6][300] = {0,};
 		int i = 0;
 		int a = 0;
 
@@ -75,6 +75,7 @@ void prompt (char* argv) {
 		fgets(order,sizeof(order),stdin);
 		order[strlen(order)-1] = '\0';
 
+		//		while(getchar() != '\n');
 		char* token = strtok(order," ");
 
 		while(token != NULL){
@@ -89,12 +90,12 @@ void prompt (char* argv) {
 		{
 			case 0: {
 						if (tokenlist[1] == " ") {
-							printf("ERROR\n");
+							printf("ERROR 공백 \n");
 							break;
 						}
 
 						if (!is_basic_file(tokenlist[1])) { // file에 대한 유효성 검사.
-							printf("ERROR\n");
+							printf("ERROR 파일 유효성\n");
 							break;
 						}
 
@@ -102,21 +103,22 @@ void prompt (char* argv) {
 						cur = head;
 
 						while (cur->next != NULL) {
-							if (strcmp(cur->filename,tokenlist[1]) != 0){
-								printf("ERROR\n");
+							if (strcmp(cur->filename,tokenlist[1]) == 0){
+								printf("ERROR 이미 존재\n");
 								break;
 							}
 							cur->next = cur;
-						} 
+						}
+						free(cur);
 						// 이미 기존 리스트에 존재하는지 검사.
 						// filename에 대한 유효성검사 끝.
 						if (tokenlist[2] == " "){
-							printf("ERROR\n");
+							printf("ERROR 주기가 입력안됨\n");
 						}
 						double period = atof(tokenlist[2]);
 						int turncated = (int)period;
 						if (period != turncated || turncated == 0) {
-							printf("ERROR\n");
+							printf("ERROR 정수형이아님\n");
 							break;
 						}
 						//period 유효성 검사 끝.
@@ -124,12 +126,10 @@ void prompt (char* argv) {
 						list* bcklist = (list*)malloc(sizeof(list));
 
 						strcpy(bcklist->filename,tokenlist[1]);
-
 						bcklist->period = turncated;
+
 						bcklist->next = head->next;
 						head->next = bcklist;
-						// 아래도 리스트 확인차 만든 코드
-
 						break;}
 			case 1:
 
@@ -142,9 +142,9 @@ void prompt (char* argv) {
 					   temp = head;
 
 					   while (temp->next != NULL) {
-						   printf("%s asdasd  %d",temp->filename,temp->period);
+						   printf("%s %d\n",temp->filename,temp->period);
+						   temp->next = temp;
 					   }
-					   temp->next = temp;
 
 
 					   break; }
@@ -155,9 +155,8 @@ void prompt (char* argv) {
 			case 7:
 				   break;
 
-			case 8:
-
 			default:
+				   printf("ERROR");
 
 				   break;
 
@@ -202,5 +201,7 @@ int main(int argc,char* argv[]) {
 			}
 		}
 	}
-	prompt(argv[1]);
+	list* head = (list*)malloc(sizeof(list));
+	head->next = NULL;
+	prompt(head,argv[1]);
 }
