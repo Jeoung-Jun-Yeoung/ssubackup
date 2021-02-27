@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
@@ -9,6 +7,8 @@
 #include <pwd.h>
 #include <grp.h>
 #include <pthread.h>
+#include <time.h>
+#include "backup.h"
 
 typedef struct backuplist {
 	char filename[255];
@@ -16,6 +16,10 @@ typedef struct backuplist {
 	char option;
 	struct backuplist* next;
 } list;
+
+list* head = (list*)malloc(sizeof(list));
+head->next = NULL;
+pthread_mutex_t mutex;
 
 bool is_valid_path (char* path) { // 경로를 검사하는 함수.
 	struct stat buf;
@@ -59,31 +63,62 @@ int is_valid_order (char order[]) {
 		}
 	}		
 }
-void make_node(list* head, char* filename, int turncated){
-	list* bcklist = (list*)malloc(sizeof(list));
 
-	strcpy(bcklist->filename,filename); //file이름 넣어주기.
-	bcklist->period = turncated; // 주기 넣어주기
+// para : 경로 char* argv , 파일명 bcklist->filename, bcklist를 받아온다.
+// 주기마다 실행 = bcklist->period
+// 쓰레드함수로 만들어서 주기마다 카피 실행.
+//병렬적으로 백업이 되어야 하기 때문.
+// 
+void* copy_file (void* arg) {
 
-	bcklist->next = head->next; // 리스트간 연결.
-	head->next = bcklist;
+	chdir(argv[1]); // 백업  디렉토리폴더로 이동.
+	
+	int count;
+	char buffer [5] = { 0, };
+	char backupname[100] = {0 ,};
+	time_t now;
+	struct tm *st_time;
+	char buffer[100];
 
+	time(&now);
+	st_time = localtime(&tm_time);
+	strftime(buff,100,"%Y%m%d%l%M%S\n",st_time);
+	puts(buff);
+	printf("%s",buff);
+
+	strcpy(backupname,bcklist->filelist);
+	strcat(backupname,ctime(now));
+	
+	pthread_mutex_lock(&mutex);
+
+	FILE* src = fopen("소스 파일 ","r");
+	FILE* dest = fopen("백업파일명","w");
+
+	while (feof(src) == 0) {
+		count = fread(buffer,sizeof(char),4,src);
+		fwrite(buffer,sizeof(char),count,dest);
+		meset(buffer,0,5);
+	}
+
+	fclose(dest);
+	fclose(src);
+
+	pthread_mutex_unlock(&mutex);
 }
 
-void prompt (list* head,char* argv) {
-	//	chdir(argv); // 작업을 현재 디렉토리폴더로 이동.
+void prompt (char* argv) {
 
 	while (1) {
 		char order[500] = {0,};
 		char tokenlist[6][300] = {0,};
 		int i = 0;
 		int a = 0;
-		//system("clear");
+		system("clear");
 		printf("20170819>");
 
 		fgets(order,sizeof(order),stdin);
 		order[strlen(order)-1] = '\0';
-		
+
 		char* token = strtok(order," ");
 
 		while(token != NULL){
@@ -106,7 +141,7 @@ void prompt (list* head,char* argv) {
 							printf("ERROR 파일 유효성\n");
 							break;
 						}
-						
+
 						list* cur;
 						cur = head;
 						while (cur->next != NULL) {
@@ -114,7 +149,7 @@ void prompt (list* head,char* argv) {
 								printf("ERROR 이미 존재\n");
 								break;
 							}
-							cur->next = cur;
+							cur = cur->next; // 리스트 중요한 부분.. 잘 기억하기
 						}
 						// 이미 기존 리스트에 존재하는지 검사.
 						// filename에 대한 유효성검사 끝.
@@ -128,17 +163,15 @@ void prompt (list* head,char* argv) {
 							break;
 						}
 						//period 유효성 검사 끝.
-						make_node(head,tokenlist[1],turncated);
-						printf("%s %d",head->next->filename, head->next->period);
-					/*	list* bcklist = (list*)malloc(sizeof(list));
+						list* bcklist = (list*)malloc(sizeof(list));
 
 						strcpy(bcklist->filename,tokenlist[1]); //file이름 넣어주기.
 						bcklist->period = turncated; // 주기 넣어주기
 
 						bcklist->next = head->next; // 리스트간 연결.
 						head->next = bcklist;
-					   	*/
-					  break;}
+
+						break;}
 			case 1:
 
 			case 2:
@@ -206,7 +239,7 @@ int main(int argc,char* argv[]) {
 			}
 		}
 	}
-	list* head = (list*)malloc(sizeof(list));
-	head->next = NULL;
-	prompt(head,argv[1]);
+	// 쓰레드 
+	prompt(argv[1]);
+
 }
