@@ -72,7 +72,7 @@ int is_valid_order (char order[]) {
 void* copy_file (void* arg) {
 
 	chdir(argv[1]); // 백업  디렉토리폴더로 이동.
-	
+
 	int count;
 	char buffer [5] = { 0, };
 	char backupname[100] = {0 ,};
@@ -88,7 +88,7 @@ void* copy_file (void* arg) {
 
 	strcpy(backupname,bcklist->filelist);
 	strcat(backupname,ctime(now));
-	
+
 	pthread_mutex_lock(&mutex);
 
 	FILE* src = fopen("소스 파일 ","r");
@@ -104,6 +104,17 @@ void* copy_file (void* arg) {
 	fclose(src);
 
 	pthread_mutex_unlock(&mutex);
+}
+void* list_search (void* arg) {
+	list* cur;
+	cur = head;
+	while(1){
+		while (cur->next != NULL) {
+			cur = cur->next;
+			//여기서 백업 쓰레드를 만들어준다.
+
+		}
+	}
 }
 
 void prompt (char* argv) {
@@ -172,8 +183,20 @@ void prompt (char* argv) {
 						head->next = bcklist;
 
 						break;}
-			case 1:
+			case 1: { 
+						list* rm;
+						list* temp;
 
+						while(rm->next != NULL){
+							rm = rm->next;
+							if (strcmp(rm->filename,tokenlist[1]) == 0) {
+								temp = rm->next;
+								rm->next = temp->next;
+							}
+						}
+					}
+
+					break;
 			case 2:
 
 			case 3:
