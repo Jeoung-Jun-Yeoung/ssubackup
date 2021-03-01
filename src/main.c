@@ -17,10 +17,7 @@ typedef struct backuplist {
 	struct backuplist* next;
 } list;
 
-list* head = (list*)malloc(sizeof(list));
-head->filename = " ";
-head->period = 0;
-head->next = NULL;
+list* head;
 pthread_mutex_t mutex;
 
 bool is_valid_path (char* path) { // 경로를 검사하는 함수.
@@ -263,6 +260,8 @@ int main(int argc,char* argv[]) {
 			}
 		}
 	}
+	head = (list*)malloc(sizeof(list));
+	head->next = NULL;
 	pthread_t search;
 	prompt(argv[1]);
 	pthread_create(&search,NULL,search_list,/*(void*)head*/NULL);
