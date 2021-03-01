@@ -18,6 +18,8 @@ typedef struct backuplist {
 } list;
 
 list* head = (list*)malloc(sizeof(list));
+head->filename = " ";
+head->period = 0;
 head->next = NULL;
 pthread_mutex_t mutex;
 
@@ -69,52 +71,53 @@ int is_valid_order (char order[]) {
 // 쓰레드함수로 만들어서 주기마다 카피 실행.
 //병렬적으로 백업이 되어야 하기 때문.
 // 
+/*
 void* copy_file (void* arg) {
 
 	chdir(argv[1]); // 백업  디렉토리폴더로 이동.
 
 	int count;
 	char buffer [5] = { 0, };
-	char backupname[100] = {0 ,};
-	time_t now;
-	struct tm *st_time;
-	char buffer[100];
+	char backupname[200] = {0, };
+	char time [50] = {0, };
+	
+	pthread_mutex_lock(&mutex);
+	
+	time_t t;
+	struct tm* timeinfo;
 
-	time(&now);
-	st_time = localtime(&tm_time);
-	strftime(buff,100,"%Y%m%d%l%M%S\n",st_time);
-	puts(buff);
-	printf("%s",buff);
+	time(&t);
+	timeinfo = localtime(&t);
+
+	strcpy(time,asctime(timeinfo));
 
 	strcpy(backupname,bcklist->filelist);
-	strcat(backupname,ctime(now));
+	strcat(backupname,time);
 
-	pthread_mutex_lock(&mutex);
-
-	FILE* src = fopen("소스 파일 ","r");
-	FILE* dest = fopen("백업파일명","w");
+	FILE* src = fopen("tokenlist[1]","r");
+	FILE* dest = fopen("backupname","w");
 
 	while (feof(src) == 0) {
 		count = fread(buffer,sizeof(char),4,src);
 		fwrite(buffer,sizeof(char),count,dest);
-		meset(buffer,0,5);
+		memset(buffer,0,5);
 	}
 
 	fclose(dest);
 	fclose(src);
 
 	pthread_mutex_unlock(&mutex);
-}
-void* list_search (void* arg) {
-	list* cur;
-	cur = head;
-	while(1){
+}*/
+void* search_list (/*void* head*/) {
+	printf("검색 스레드 실행 된 유무확인");
+/*	while(1){
+		list* cur = (list*)head;
 		while (cur->next != NULL) {
 			cur = cur->next;
-			//여기서 백업 쓰레드를 만들어준다.
+			printf("%s",cur->filename);
 
 		}
-	}
+	}*/
 }
 
 void prompt (char* argv) {
@@ -184,14 +187,11 @@ void prompt (char* argv) {
 
 						break;}
 			case 1: { 
-						list* rm;
-						list* temp;
-
-						while(rm->next != NULL){
-							rm = rm->next;
-							if (strcmp(rm->filename,tokenlist[1]) == 0) {
-								temp = rm->next;
-								rm->next = temp->next;
+						list* front_target;
+						while(front_target->next != NULL){
+							front_target = front_target->next;
+							if (strcmp(front_target->next->filename,tokenlist[1]) == 0) {
+								front_target->next = front_target->next->next;
 							}
 						}
 					}
@@ -232,6 +232,7 @@ int main(int argc,char* argv[]) {
 	char foldername [8] = "/backup";
 	char strbuffer [300] = {0,};
 	char* pstrbuffer = NULL;
+	
 	if (argc == 1) { // 입력이 안되면,
 
 		pstrbuffer = getcwd(strbuffer,300); // 현재 디렉토리 경로얻기.
@@ -262,7 +263,8 @@ int main(int argc,char* argv[]) {
 			}
 		}
 	}
-	// 쓰레드 
+	pthread_t search;
 	prompt(argv[1]);
+	pthread_create(&search,NULL,search_list,/*(void*)head*/NULL);
 
 }
