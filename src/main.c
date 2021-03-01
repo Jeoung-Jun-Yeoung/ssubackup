@@ -17,7 +17,7 @@ typedef struct backuplist {
 	struct backuplist* next;
 } list;
 
-list* head;
+list* head = NULL;
 pthread_mutex_t mutex;
 
 bool is_valid_path (char* path) { // 경로를 검사하는 함수.
@@ -105,7 +105,7 @@ void* copy_file (void* arg) {
 
 	pthread_mutex_unlock(&mutex);
 }*/
-void* search_list (/*void* head*/) {
+void* search_list (void* head) {
 	printf("검색 스레드 실행 된 유무확인");
 /*	while(1){
 		list* cur = (list*)head;
@@ -124,7 +124,7 @@ void prompt (char* argv) {
 		char tokenlist[6][300] = {0,};
 		int i = 0;
 		int a = 0;
-		system("clear");
+		//system("clear");
 		printf("20170819>");
 
 		fgets(order,sizeof(order),stdin);
