@@ -64,6 +64,7 @@ void* copy_file (void *filelist) {
 	char buffer [5] = { 0, };
 	char backupname[200] = {0, };
 	char chtime [50] = {0, };
+	
 	list* bcklist = (void*)filelist;
 	pthread_mutex_lock(&mutex);
 
@@ -99,7 +100,7 @@ void* search_list (void *head) {
 			cur = cur->next;
 			pthread_t backup;
 			pthread_create(&backup,NULL,copy_file,(void*)cur);
-			printf("실행확인\n");
+		//	printf("실행확인\n");
 		}
 	}
 }
@@ -115,10 +116,10 @@ void* search_list (void *head) {
    }
  */
 void prompt () {
-	pthread_t search;
+//	pthread_t search;
 			
 	while (1) {
-		pthread_create(&search,NULL,search_list,(void*)head);
+//		pthread_create(&search,NULL,search_list,(void*)head);
 		char order[500] = {0,};
 		char tokenlist[6][300] = {0,};
 		int i = 0;
@@ -182,6 +183,7 @@ void prompt () {
 
 					break;}
 			case 1: { 	list* front_target;
+						front_target = head;
 						while(front_target->next != NULL){
 							front_target = front_target->next;
 							if (strcmp(front_target->next->filename,tokenlist[1]) == 0) {
@@ -233,7 +235,6 @@ int main(int argc,char* argv[]) {
 
 		int dir_result = mkdir(strbuffer,0755);
 		chdir(strbuffer);
-
 	}
 	else { // 경로입력이 되었다면,
 		//   경로를 유효성검사함수로 보낸다. 이후 결과에 따라 백업폴더 생성.
@@ -258,7 +259,6 @@ int main(int argc,char* argv[]) {
 		}
 	chdir(argv[1]);	
 	}
-	
 	head = (list*)malloc(sizeof(list));
 	head->next = NULL;
 	prompt();
