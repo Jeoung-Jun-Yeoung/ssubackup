@@ -59,13 +59,18 @@ int is_valid_order (char order[]) {
 //병렬적으로 백업이 되어야 하기 때문.
 // 
 void* copy_file (void *filelist) {
-
+	
 	int count;
 	char buffer [5] = { 0, };
-	char backupname[200] = {0, };
 	char chtime [50] = {0, };
-	
+	char strbuffer [300];
+	char temp [50];
+	char filename [100];
+
 	list* bcklist = (void*)filelist;
+	
+	getcwd(strbuffer,300);
+	
 	pthread_mutex_lock(&mutex);
 
 	time_t t;
@@ -75,12 +80,21 @@ void* copy_file (void *filelist) {
 	timeinfo = localtime(&t);
 
 	strcpy(chtime,asctime(timeinfo));
+	strcpy(filename,bcklist->filename);
 
-	strcpy(backupname,bcklist->filename);
-	strcat(backupname,chtime);
+	char* token = strtok(filename,"/");
+
+	while (token != NULL) { 
+		strcpy(temp,token);
+		token = strtok(NULL,"/");
+	}
+
+	strcat(strbuffer,"/");
+	strcat(strbuffer,temp);
+	strcat(strbuffer,chtime);
 
 	FILE* src = fopen(bcklist->filename,"r");
-	FILE* dest = fopen(backupname,"w");
+	FILE* dest = fopen(strbuffer,"w");
 
 	while (feof(src) == 0) {
 		count = fread(buffer,sizeof(char),4,src);
@@ -100,7 +114,6 @@ void* search_list (void *head) {
 			cur = cur->next;
 			pthread_t backup;
 			pthread_create(&backup,NULL,copy_file,(void*)cur);
-		//	printf("실행확인\n");
 		}
 	}
 }
@@ -116,8 +129,8 @@ void* search_list (void *head) {
    }
  */
 void prompt () {
-//	pthread_t search;
-			
+	//pthread_t search;
+
 	while (1) {
 //		pthread_create(&search,NULL,search_list,(void*)head);
 		char order[500] = {0,};
@@ -257,10 +270,14 @@ int main(int argc,char* argv[]) {
 				return 0;
 			}
 		}
-	chdir(argv[1]);	
+		chdir(argv[1]);	
 	}
 	head = (list*)malloc(sizeof(list));
 	head->next = NULL;
+
+	pthread_t search;
+	pthread_create(&search,NULL,search_list,(void*)head);
+	
 	prompt();
 
 }
