@@ -2,8 +2,9 @@
 
 typedef struct backuplist {
 	char filename[255];
-	int period;
 	char option;
+	int nowsec;
+	int period;
 	struct backuplist* next;
 } list;
 
@@ -21,6 +22,34 @@ bool is_valid_path (char* path) { // 경로를 검사하는 함수.
 	else{
 		return false;
 	}
+}
+
+char* now_time () {
+	struct tm *tn;
+	time_t tnow;
+	char static date[16];
+
+	tnow = time(NULL);
+
+	tn = (struct tm*)localtime(&tnow);
+	sprintf(date,"%02d%02d%02d%02d%02d%02d",(tn->tm_year + 1900)-2000,tn->tm_mon + 1,tn->tm_mday,tn->tm_hour,tn->tm_min,tn->tm_sec);
+
+	return date;
+}
+
+int sec () {
+	struct tm *tn;
+	time_t tsec;
+	int static sec;
+
+	tsec = time(NULL);
+
+	tn = (struct tm*)localtime(&tsec);
+
+	sec = tn->tm_sec;
+
+	return sec;
+
 }
 
 bool is_basic_file (char* filename) {
@@ -59,27 +88,22 @@ int is_valid_order (char order[]) {
 //병렬적으로 백업이 되어야 하기 때문.
 // 
 void* copy_file (void *filelist) {
-	
+
 	int count;
 	char buffer [5] = { 0, };
-	char chtime [50] = {0, };
+	char* nowtime;
 	char strbuffer [300];
 	char temp [50];
 	char filename [100];
+	char* wirtelog = " genrated";
 
 	list* bcklist = (void*)filelist;
-	
+
 	getcwd(strbuffer,300);
-	
+
 	pthread_mutex_lock(&mutex);
 
-	time_t t;
-	struct tm* timeinfo;
-
-	time(&t);
-	timeinfo = localtime(&t);
-
-	strcpy(chtime,asctime(timeinfo));
+	nowtime = now_time();
 	strcpy(filename,bcklist->filename);
 
 	char* token = strtok(filename,"/");
@@ -91,7 +115,8 @@ void* copy_file (void *filelist) {
 
 	strcat(strbuffer,"/");
 	strcat(strbuffer,temp);
-	strcat(strbuffer,chtime);
+	strcat(strbuffer,"_");
+	strcat(strbuffer,nowtime);
 
 	FILE* src = fopen(bcklist->filename,"r");
 	FILE* dest = fopen(strbuffer,"w");
@@ -102,39 +127,70 @@ void* copy_file (void *filelist) {
 		memset(buffer,0,5);
 	}
 
+	strcat(strbuffer,wirtelog);
+
+	FILE* fp = fopen("log.txt","a");
+	fputs(nowtime,fp);
+	fputs(" ",fp);
+	fputs(strbuffer,fp);
+	fputs("\n",fp);
+
+	fclose(fp);
 	fclose(dest);
 	fclose(src);
 
 	pthread_mutex_unlock(&mutex);
 }
+
 void* search_list (void *head) {
 	while(1){	
 		list* cur = (list*)head;
+		sleep(1);
+		int second = 0;
+		second = sec();
 		while (cur->next != NULL) {
 			cur = cur->next;
-			pthread_t backup;
-			pthread_create(&backup,NULL,copy_file,(void*)cur);
+			if(second % cur->period == 0){
+				pthread_t backup;
+				pthread_create(&backup,NULL,copy_file,(void*)cur);
+			}
 		}
 	}
 }
 /*
-   void* remove_list (void* target){						
-   list* front_target;
-   while(front_target->next != NULL){
-   front_target = front_target->next;
-   if (strcmp(front_target->next->filename,tokenlist[1]) == 0) {
-   front_target->next = front_target->next->next;
-   }
-   }
-   }
- */
+void* remove_list (void* head){						
+
+	list* front_target = (void*)filelist;
+
+	while(front_target->next != NULL){
+
+		front_target = front_target->next;
+
+		if (strcmp(front_target->next->filename,tokenlist[1]) == 0) {
+			pthread_mutex_lock(&mutex);
+
+			FILE* fp = fopen("log.txt","a");
+			nowtime = now_time();
+			fputs(nowtime,fp);
+			fputs(" ",fp);
+			fputs(tokenlist[1],fp);
+			fputs(" delete",fp);
+			fputs("\n",fp);
+			fclose(fp);
+
+			front_target->next = front_target->next->next;
+
+			pthread_mutex_unlock(&mutex);
+		}
+	}
+}
+*/
 void prompt () {
-	//pthread_t search;
 
 	while (1) {
-//		pthread_create(&search,NULL,search_list,(void*)head);
 		char order[500] = {0,};
 		char tokenlist[6][300] = {0,};
+		char* nowtime;
 		int i = 0;
 		int a = 0;
 		//system("clear");
@@ -194,15 +250,41 @@ void prompt () {
 					bcklist->next = head->next; // 리스트간 연결.
 					head->next = bcklist;
 
+					FILE* fp = fopen("log.txt","a");
+					nowtime = now_time();
+					fputs(nowtime,fp);
+					fputs(" ",fp);
+					fputs(bcklist->filename,fp);
+					fputs(" added",fp);
+					fputs("\n",fp);
+					fclose(fp);
+
 					break;}
-			case 1: { 	list* front_target;
-						front_target = head;
-						while(front_target->next != NULL){
-							front_target = front_target->next;
-							if (strcmp(front_target->next->filename,tokenlist[1]) == 0) {
-								front_target->next = front_target->next->next;
-							}
-						}
+			case 1: { 	/*
+						pthread_t delete;
+
+						pthread_create(&delete,NULL,remove_list,(void*)head);
+						tokenlist와 head둘다 어떻게 넘기나?
+						*/ 
+						   list* front_target;
+						   front_target = head;
+
+						   while(front_target->next != NULL){
+						   front_target = front_target->next;
+						   if (strcmp(front_target->next->filename,tokenlist[1]) == 0) {
+
+						   FILE* fp = fopen("log.txt","a");
+						   nowtime = now_time();
+						   fputs(nowtime,fp);
+						   fputs(" ",fp);
+						   fputs(tokenlist[1],fp);
+						   fputs(" delete",fp);
+						   fputs("\n",fp);
+						   fclose(fp);
+
+						   front_target->next = front_target->next->next;
+						   }
+						   }
 					}
 
 					break;
@@ -248,6 +330,8 @@ int main(int argc,char* argv[]) {
 
 		int dir_result = mkdir(strbuffer,0755);
 		chdir(strbuffer);
+		FILE* fp = fopen("log.txt","a");
+		fclose(fp);
 	}
 	else { // 경로입력이 되었다면,
 		//   경로를 유효성검사함수로 보낸다. 이후 결과에 따라 백업폴더 생성.
@@ -271,13 +355,16 @@ int main(int argc,char* argv[]) {
 			}
 		}
 		chdir(argv[1]);	
+
+		FILE* fp = fopen("log.txt","a");
+		fclose(fp);
 	}
 	head = (list*)malloc(sizeof(list));
 	head->next = NULL;
 
 	pthread_t search;
 	pthread_create(&search,NULL,search_list,(void*)head);
-	
+
 	prompt();
 
 }
