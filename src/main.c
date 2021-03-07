@@ -130,7 +130,9 @@ void* copy_file (void *filelist) {
 	strcat(strbuffer,wirtelog);
 
 	FILE* fp = fopen("log.txt","a");
+	fputs("[",fp);
 	fputs(nowtime,fp);
+	fputs("]",fp);
 	fputs(" ",fp);
 	fputs(strbuffer,fp);
 	fputs("\n",fp);
@@ -252,7 +254,9 @@ void prompt () {
 
 					FILE* fp = fopen("log.txt","a");
 					nowtime = now_time();
+					fputs("[",fp);
 					fputs(nowtime,fp);
+					fputs("]",fp);
 					fputs(" ",fp);
 					fputs(bcklist->filename,fp);
 					fputs(" added",fp);
@@ -288,7 +292,10 @@ void prompt () {
 					}
 
 					break;
-			case 2:
+			case 2: { //compare
+
+					}
+					break;
 
 			case 3:
 
@@ -299,8 +306,11 @@ void prompt () {
 						   printf("%s %d\n",temp->filename,temp->period);
 					   }
 					   break; }
-			case 5:
+			case 5: { system("ls");
+					
+					}
 
+					break;
 			case 6:
 
 			case 7:
