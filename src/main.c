@@ -1,10 +1,10 @@
 #include "backup.h"
 
 typedef struct backuplist {
-	char filename[255];
-	char option;
-	int nowsec;
-	int period;
+	char filename[255]; // 파일네임
+	char option; // 백업리스트 옵션
+	long long recent; // 가장 최근 백업시간
+	int period; // 백업주
 	struct backuplist* next;
 } list;
 
@@ -37,16 +37,13 @@ char* now_time () {
 	return date;
 }
 
-int sec () {
-	struct tm *tn;
-	time_t tsec;
-	int static sec;
+long long sec () {
+	long long static sec;
+	time_t ti = time(NULL);
+	time_t u = 0;
 
-	tsec = time(NULL);
-
-	tn = (struct tm*)localtime(&tsec);
-
-	sec = tn->tm_sec;
+	time(&u);
+	sec = u;
 
 	return sec;
 
@@ -147,46 +144,58 @@ void* copy_file (void *filelist) {
 void* search_list (void *head) {
 	while(1){	
 		list* cur = (list*)head;
-		sleep(1);
-		int second = 0;
-		second = sec();
+
+		long long now = sec();
+
 		while (cur->next != NULL) {
 			cur = cur->next;
-			if(second % cur->period == 0){
+			if((now - cur->recent) == cur->period){ // 현재시간과 가장 최근의 업데이트 시간을 빼준 값이 주기일때 실행.
+				cur->recent = now; // 주기가 돌때마다 시간을 업데이트 해준다. 
+
 				pthread_t backup;
 				pthread_create(&backup,NULL,copy_file,(void*)cur);
 			}
 		}
 	}
 }
-/*
-void* remove_list (void* head){						
 
-	list* front_target = (void*)filelist;
+void* remove_list (void* arg){						
+	
+	pthread_mutex_lock(&mutex);
 
+	list* front_target = head;
+
+	char* targetfile;
+	char* nowtime;
+	
+	targetfile = (char*)arg;
+	
 	while(front_target->next != NULL){
 
-		front_target = front_target->next;
-
-		if (strcmp(front_target->next->filename,tokenlist[1]) == 0) {
-			pthread_mutex_lock(&mutex);
+		if (strcmp(front_target->next->filename,targetfile) == 0) {
 
 			FILE* fp = fopen("log.txt","a");
 			nowtime = now_time();
+			fputs("[",fp);
 			fputs(nowtime,fp);
+			fputs("]",fp);
 			fputs(" ",fp);
-			fputs(tokenlist[1],fp);
+			fputs(targetfile,fp);
 			fputs(" delete",fp);
 			fputs("\n",fp);
 			fclose(fp);
-
+			
 			front_target->next = front_target->next->next;
 
 			pthread_mutex_unlock(&mutex);
+			
+			break;
 		}
+		front_target = front_target->next;
 	}
+	
 }
-*/
+
 void prompt () {
 
 	while (1) {
@@ -197,7 +206,7 @@ void prompt () {
 		int a = 0;
 		//system("clear");
 		printf("20170819>");
-
+		sec();
 		fgets(order,sizeof(order),stdin);
 		order[strlen(order)-1] = '\0';
 
@@ -207,6 +216,10 @@ void prompt () {
 			strcpy(tokenlist[i],token);
 			token = strtok(NULL," ");
 			i++;
+		}
+
+		if (tokenlist[1][0] != '/') { // 상대경로라면 절대경로 변환.
+			strcpy(tokenlist[1],change_repath2abpath(tokenlist[1])); 
 		}
 
 		a = is_valid_order(tokenlist[0]);
@@ -248,6 +261,7 @@ void prompt () {
 
 					strcpy(bcklist->filename,tokenlist[1]); //file이름 넣어주기.
 					bcklist->period = turncated; // 주기 넣어주기
+					bcklist->recent = sec();
 
 					bcklist->next = head->next; // 리스트간 연결.
 					head->next = bcklist;
@@ -264,31 +278,33 @@ void prompt () {
 					fclose(fp);
 
 					break;}
-			case 1: { 	/*
-						pthread_t delete;
+			case 1: { 	
+						   pthread_t delete;
 
-						pthread_create(&delete,NULL,remove_list,(void*)head);
-						tokenlist와 head둘다 어떻게 넘기나?
-						*/ 
-						   list* front_target;
-						   front_target = head;
+						   pthread_create(&delete,NULL,remove_list,(void*)tokenlist[1]);
 
-						   while(front_target->next != NULL){
-						   front_target = front_target->next;
-						   if (strcmp(front_target->next->filename,tokenlist[1]) == 0) {
+						   pthread_join(delete,NULL);
 
-						   FILE* fp = fopen("log.txt","a");
-						   nowtime = now_time();
-						   fputs(nowtime,fp);
-						   fputs(" ",fp);
-						   fputs(tokenlist[1],fp);
-						   fputs(" delete",fp);
-						   fputs("\n",fp);
-						   fclose(fp);
+						/*  
+						list* front_target;
+						front_target = head;
 
-						   front_target->next = front_target->next->next;
-						   }
-						   }
+						while(front_target->next != NULL){
+							front_target = front_target->next;
+							if (strcmp(front_target->next->filename,tokenlist[1]) == 0) {
+
+								FILE* fp = fopen("log.txt","a");
+								nowtime = now_time();
+								fputs(nowtime,fp);
+								fputs(" ",fp);
+								fputs(tokenlist[1],fp);
+								fputs(" delete",fp);
+								fputs("\n",fp);
+								fclose(fp);
+
+								front_target->next = front_target->next->next;
+							}
+						}*/
 					}
 
 					break;
@@ -307,19 +323,19 @@ void prompt () {
 					   }
 					   break; }
 			case 5: { system("ls");
-					
+
 					}
 
 					break;
 			case 6:
 
 			case 7:
-				   break;
+					break;
 
 			default:
-				   printf("ERROR");
+					printf("ERROR");
 
-				   break;
+					break;
 
 		}
 		if (a == 7) {
